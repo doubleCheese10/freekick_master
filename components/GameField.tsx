@@ -634,6 +634,16 @@ export const GameField: React.FC<GameFieldProps> = ({
     }
   };
 
+  const handleActionButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent field click
+    if (gameState === GamePhase.AIMING) {
+      setGameState(GamePhase.POWER);
+    } else if (gameState === GamePhase.POWER) {
+      startKick();
+      setGameState(GamePhase.SHOOTING);
+    }
+  };
+
   // --- Rendering Functions ---
   const renderAimLine = () => {
     if ((gameState !== GamePhase.AIMING && gameState !== GamePhase.POWER) || predictedPath.length < 2) return null;
@@ -846,6 +856,25 @@ export const GameField: React.FC<GameFieldProps> = ({
         </g>
         
       </svg>
+
+      {/* Touch Action Button */}
+      {(gameState === GamePhase.AIMING || gameState === GamePhase.POWER) && (
+        <button
+          onClick={handleActionButtonClick}
+          className={`absolute bottom-8 right-8 w-24 h-24 rounded-full border-4 border-white shadow-xl flex flex-col items-center justify-center z-50 transition-transform active:scale-95 ${
+            gameState === GamePhase.AIMING 
+              ? 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' 
+              : 'bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600'
+          }`}
+        >
+          <span className="text-white font-black text-lg drop-shadow-md">
+            {gameState === GamePhase.AIMING ? 'POWER' : 'SHOOT'}
+          </span>
+          <span className="text-white/80 text-[10px] uppercase font-bold tracking-widest mt-1">
+            {gameState === GamePhase.AIMING ? '(SPACE)' : 'NOW!'}
+          </span>
+        </button>
+      )}
     </div>
   );
 };
