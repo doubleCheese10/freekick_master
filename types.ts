@@ -6,8 +6,8 @@ export type Point = {
 
 export enum GamePhase {
   PLACEMENT = 'PLACEMENT',
-  AIMING = 'AIMING',
-  POWER = 'POWER',
+  AIMING_DIRECTION = 'AIMING_DIRECTION', // Step 2: Set Direction
+  PULL_BACK = 'PULL_BACK',             // Step 3: Pull back for Power & Curve
   SHOOTING = 'SHOOTING',
   RESULT = 'RESULT',
 }

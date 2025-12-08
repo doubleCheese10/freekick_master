@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { GamePhase } from '../types';
-import { ArrowLeft, ArrowRight, MousePointer, Space, MoveHorizontal, MousePointerClick, RefreshCcw } from 'lucide-react';
+import { MousePointer, MoveHorizontal, CheckCircle, ArrowDown } from 'lucide-react';
 
 interface ControlsHelpProps {
   phase: GamePhase;
@@ -19,35 +20,27 @@ export const ControlsHelp: React.FC<ControlsHelpProps> = ({ phase }) => {
       {phase === GamePhase.PLACEMENT && (
         <Step 
           icon={<MousePointer size={18} />} 
-          text="点击禁区外任意位置放置足球" 
+          text="第一步：点击禁区外放置足球" 
         />
       )}
       
-      {phase === GamePhase.AIMING && (
+      {phase === GamePhase.AIMING_DIRECTION && (
         <>
           <Step 
             icon={<MoveHorizontal size={18} />} 
-            text="拖动屏幕调整瞄准线" 
+            text="第二步：移动/拖动设定射门方向" 
           />
           <Step 
-            icon={<MousePointerClick size={18} />} 
-            text="点击屏幕切换 方向/弧线 模式" 
-          />
-           <Step 
-            icon={<RefreshCcw size={18} />} 
-            text="再次点击可微调方向" 
-          />
-          <Step 
-            icon={<div className="font-bold text-xs border border-white px-1 rounded">蓄力</div>} 
-            text="点击右下角按钮开始蓄力" 
+            icon={<CheckCircle size={18} />} 
+            text="点击「确认方向」进入下一步" 
           />
         </>
       )}
 
-      {phase === GamePhase.POWER && (
+      {phase === GamePhase.PULL_BACK && (
         <Step 
-          icon={<div className="font-bold text-xs border border-white px-1 rounded">射门</div>} 
-          text="再次点击按钮完成射门！" 
+          icon={<ArrowDown size={18} />} 
+          text="第三步：向后拖动蓄力 (像拉弹弓)" 
         />
       )}
     </div>

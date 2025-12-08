@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { GameField } from './components/GameField';
 import { PowerMeter } from './components/PowerMeter';
@@ -28,7 +29,6 @@ const App: React.FC = () => {
     setResult(null);
     setPower(0);
     setAttempts(a => a + 1);
-    // Ball pos will be set by placement click
   };
 
   // Prevent Spacebar scrolling
@@ -51,7 +51,6 @@ const App: React.FC = () => {
             任意球<span className="text-green-500">大师</span> <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">测试版</span>
           </h1>
           <div className="flex gap-6 text-white font-mono items-center">
-            {/* Audio Toggle Button */}
             <button 
               onClick={() => setIsMuted(!isMuted)}
               className="flex flex-col items-center justify-center h-full text-gray-400 hover:text-white transition-colors p-1"
@@ -88,9 +87,9 @@ const App: React.FC = () => {
           isMuted={isMuted}
         />
 
-        {gameState === GamePhase.POWER && <PowerMeter power={power} isActive={true} />}
+        {/* Show generic power meter if needed, or rely on Slingshot UI */}
+        {gameState === GamePhase.PULL_BACK && power > 0 && <PowerMeter power={power} isActive={true} />}
 
-        {/* Result Overlay */}
         {gameState === GamePhase.RESULT && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 animate-in fade-in zoom-in duration-300">
             <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm mx-4">

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface PowerMeterProps {
@@ -6,12 +7,14 @@ interface PowerMeterProps {
 }
 
 export const PowerMeter: React.FC<PowerMeterProps> = ({ power, isActive }) => {
+  if (!isActive) return null;
+  
   return (
-    <div className="absolute bottom-40 right-8 flex flex-col items-center gap-2 bg-black/50 p-4 rounded-lg backdrop-blur-sm z-20 pointer-events-none">
+    <div className="absolute bottom-40 right-8 flex flex-col items-center gap-2 bg-black/50 p-4 rounded-lg backdrop-blur-sm z-20 pointer-events-none transition-opacity duration-200">
       <span className="text-white font-bold text-sm tracking-widest">力度</span>
       <div className="w-8 h-48 bg-gray-700 rounded-full border-2 border-white overflow-hidden relative">
         <div
-          className={`absolute bottom-0 left-0 w-full ease-linear ${
+          className={`absolute bottom-0 left-0 w-full transition-all duration-75 ease-out ${
             power > 90 ? 'bg-red-500' : power > 70 ? 'bg-yellow-400' : 'bg-green-500'
           }`}
           style={{ height: `${power}%` }}
