@@ -309,6 +309,22 @@ export const GameField: React.FC<GameFieldProps> = ({
     }
   }, [gameState, initNet, playWhistle, setPower]);
 
+  // --- Keyboard Controls for Direction ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== GamePhase.AIMING_DIRECTION) return;
+      
+      if (e.key === 'ArrowLeft') {
+        setAimAngle(prev => Math.max(-80, prev - 2));
+      } else if (e.key === 'ArrowRight') {
+        setAimAngle(prev => Math.min(80, prev + 2));
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState]);
+
   // --- Physics: Kick Start ---
   const startKick = useCallback(() => {
     const angleRad = (aimAngle - 90) * (Math.PI / 180);
@@ -778,26 +794,35 @@ export const GameField: React.FC<GameFieldProps> = ({
   // --- Interaction Handlers ---
 
   const handleFieldClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    // Only handle click for placement phase. 
-    // Aiming and Pullback use MouseDown/Up logic
-    if (gameState === GamePhase.PLACEMENT) {
+    // Handle Click for Placement OR Aiming Repositioning
+    if (gameState === GamePhase.PLACEMENT || gameState === GamePhase.AIMING_DIRECTION) {
       const { x, y } = getSVGCoords(e.clientX, e.clientY, e.currentTarget);
       const boxLeft = (FIELD_WIDTH - PENALTY_BOX_WIDTH) / 2;
       const boxRight = (FIELD_WIDTH + PENALTY_BOX_WIDTH) / 2;
       const boxBottom = PENALTY_BOX_HEIGHT;
       const isInsideBox = x > boxLeft && x < boxRight && y < boxBottom;
+      
+      // Allow repositioning anywhere valid
       if (!isInsideBox && y > 0 && y < FIELD_HEIGHT - 10 && x > 0 && x < FIELD_WIDTH) {
         setBallPos({ x, y });
-        setGameState(GamePhase.AIMING_DIRECTION);
+        // If we were in placement, advance. If already in aiming, just move ball.
+        if (gameState === GamePhase.PLACEMENT) {
+           setGameState(GamePhase.AIMING_DIRECTION);
+        }
       }
     }
+  };
+  
+  const adjustAimAngle = (delta: number) => {
+      setAimAngle(prev => Math.max(-80, Math.min(80, prev + delta)));
   };
 
   const handlePointerDown = (clientX: number, clientY: number, svg: SVGSVGElement) => {
     const { x, y } = getSVGCoords(clientX, clientY, svg);
     
     if (gameState === GamePhase.AIMING_DIRECTION) {
-      // Just updating aim on move, click confirms via button
+      // Mouse/Touch DOWN on field during aiming does nothing now (handled by click for reposition)
+      // Direction is handled by buttons/keys only
     } else if (gameState === GamePhase.PULL_BACK) {
       // Start Dragging
       setDragStart({ x, y });
@@ -808,15 +833,8 @@ export const GameField: React.FC<GameFieldProps> = ({
   const handlePointerMove = (clientX: number, clientY: number, svg: SVGSVGElement) => {
     const { x, y } = getSVGCoords(clientX, clientY, svg);
 
-    if (gameState === GamePhase.AIMING_DIRECTION) {
-      // Calculate angle from ball to cursor
-      const dx = x - ballPos.x;
-      const dy = y - ballPos.y;
-      const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-      let gameAngle = angleDeg + 90; 
-      if (gameAngle > 180) gameAngle -= 360;
-      setAimAngle(Math.max(-80, Math.min(80, gameAngle)));
-    } else if (gameState === GamePhase.PULL_BACK && dragStart) {
+    // REMOVED MOUSE-MOVE LOGIC FOR AIMING_DIRECTION
+    if (gameState === GamePhase.PULL_BACK && dragStart) {
       setDragCurrent({ x, y });
       
       // Calculate Drag Vector (Start - Current) -> The pull force vector
@@ -831,35 +849,16 @@ export const GameField: React.FC<GameFieldProps> = ({
       setPower(currentPower);
       
       // Curve Calculation
-      // Project the Drag Vector onto the Aim Vector's Perpendicular Vector (Right)
-      // Aim Vector (Forward)
       const aimRad = (aimAngle - 90) * (Math.PI / 180);
       const aimNx = Math.cos(aimRad);
       const aimNy = Math.sin(aimRad);
       
-      // Perpendicular Vector (Left? Right?)
-      // Let's check rotation: (x, y) -> (-y, x) is 90 deg CCW (Left in standard math)
-      // But Y is down.
-      // Let's use simple logic:
-      // If drag point is to the LEFT of the aim line, ball curves LEFT.
-      // Lateral distance: 
-      // Line is defined by BallPos and AimAngle.
-      // Vector from Ball to DragPoint: V_bd
-      // Cross Product in 2D (Determinant) tells us side.
-      // Det(A, B) = AxBy - AyBx
-      
       const vBallDragX = x - ballPos.x;
       const vBallDragY = y - ballPos.y;
       
-      // Cross AimVector with BallDragVector
-      // If positive, it's on one side, negative on other.
       const cross = aimNx * vBallDragY - aimNy * vBallDragX;
       
-      // Scaling factor for curve
-      // Max curve is 10.
       const curveScale = 20; 
-      // If cross is positive (Right side), curve is positive (Right)?
-      // Let's clamp
       const rawCurve = cross / curveScale;
       setCurve(Math.max(-10, Math.min(10, rawCurve)));
     }
@@ -947,6 +946,35 @@ export const GameField: React.FC<GameFieldProps> = ({
                 </text>
             </g>
         )
+    }
+    return null;
+  }
+  
+  const renderDirectionControls = () => {
+    if (gameState === GamePhase.AIMING_DIRECTION) {
+       return (
+           <g>
+               {/* Left Arrow Button */}
+               <g 
+                  onClick={(e) => { e.stopPropagation(); adjustAimAngle(-5); }} 
+                  style={{cursor: 'pointer'}}
+                  transform={`translate(${ballPos.x - 50}, ${ballPos.y})`}
+               >
+                   <circle r="15" fill="rgba(0,0,0,0.5)" stroke="white" strokeWidth="2" />
+                   <path d="M 5 0 L -5 -5 L -5 5 Z" fill="white" transform="rotate(180) translate(2,0)" />
+               </g>
+
+               {/* Right Arrow Button */}
+               <g 
+                  onClick={(e) => { e.stopPropagation(); adjustAimAngle(5); }} 
+                  style={{cursor: 'pointer'}}
+                  transform={`translate(${ballPos.x + 50}, ${ballPos.y})`}
+               >
+                   <circle r="15" fill="rgba(0,0,0,0.5)" stroke="white" strokeWidth="2" />
+                   <path d="M 5 0 L -5 -5 L -5 5 Z" fill="white" transform="translate(2,0)" />
+               </g>
+           </g>
+       )
     }
     return null;
   }
@@ -1135,6 +1163,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         {/* Dynamic Aim Line */}
         {renderAimLine()}
         {renderSlingshot()}
+        {renderDirectionControls()}
         {renderConfirmDirectionButton()}
 
         {/* Goalkeeper */}

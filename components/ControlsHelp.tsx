@@ -28,7 +28,7 @@ export const ControlsHelp: React.FC<ControlsHelpProps> = ({ phase }) => {
         <>
           <Step 
             icon={<MoveHorizontal size={18} />} 
-            text="第二步：移动/拖动设定射门方向" 
+            text="第二步：使用左右按钮调整方向，点击场地移动位置" 
           />
           <Step 
             icon={<CheckCircle size={18} />} 
