@@ -864,8 +864,20 @@ export const GameField: React.FC<GameFieldProps> = ({
           
           {/* Ball Body - Moves up by visualZ */}
           <g transform={`translate(0, ${-visualZ})`}>
-            <circle r={BALL_RADIUS} fill="white" stroke="#ccc" strokeWidth="1" filter="url(#glow)" />
-            <path d="M -3 -3 L 3 3 M 3 -3 L -3 3" stroke="#333" strokeWidth="1.5" transform={`rotate(${ballPos.x + ballPos.y})`} />
+             <g transform={`scale(${BALL_RADIUS / 15}) rotate(${ballPos.x + ballPos.y})`}>
+                {/* Translate -15, -15 to center the 30x30 SVG at 0,0 */}
+                <g transform="translate(-15, -15)">
+                    <circle cx="15" cy="15" r="14" fill="#ffffff" stroke="#000000" strokeWidth="2"/>
+                    <polygon points="15,7 22,12 19,20 11,20 8,12" fill="#000000"/>
+                    <g stroke="#000000" strokeWidth="2" strokeLinecap="round">
+                        <line x1="15" y1="7" x2="15" y2="1" />
+                        <line x1="22" y1="12" x2="28" y2="8" />
+                        <line x1="19" y1="20" x2="24" y2="27" />
+                        <line x1="11" y1="20" x2="6" y2="27" />
+                        <line x1="8" y1="12" x2="2" y2="8" />
+                    </g>
+                </g>
+             </g>
           </g>
         </g>
         
