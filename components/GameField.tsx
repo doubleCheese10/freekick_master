@@ -584,14 +584,19 @@ export const GameField: React.FC<GameFieldProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState, setGameState, startKick]);
 
+  // Coordinate conversion helper
+  const getSVGCoords = (clientX: number, clientY: number, svgElement: SVGSVGElement) => {
+      const svgRect = svgElement.getBoundingClientRect();
+      const scaleX = viewBox.w / svgRect.width;
+      const scaleY = viewBox.h / svgRect.height;
+      return {
+          x: viewBox.x + (clientX - svgRect.left) * scaleX,
+          y: viewBox.y + (clientY - svgRect.top) * scaleY
+      };
+  };
+
   const handleFieldClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    const svgRect = e.currentTarget.getBoundingClientRect();
-    // Convert Client coords to SVG viewBox coords
-    const scaleX = viewBox.w / svgRect.width;
-    const scaleY = viewBox.h / svgRect.height;
-    
-    const x = viewBox.x + (e.clientX - svgRect.left) * scaleX;
-    const y = viewBox.y + (e.clientY - svgRect.top) * scaleY;
+    const { x, y } = getSVGCoords(e.clientX, e.clientY, e.currentTarget);
 
     if (gameState === GamePhase.PLACEMENT) {
       const boxLeft = (FIELD_WIDTH - PENALTY_BOX_WIDTH) / 2;
@@ -607,18 +612,13 @@ export const GameField: React.FC<GameFieldProps> = ({
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  // Unified logic for processing Aim/Curve updates
+  const processAimingInput = (inputX: number, inputY: number) => {
     if (gameState !== GamePhase.AIMING) return;
-    const svgRect = e.currentTarget.getBoundingClientRect();
-    const scaleX = viewBox.w / svgRect.width;
-    const scaleY = viewBox.h / svgRect.height;
     
-    const mouseX = viewBox.x + (e.clientX - svgRect.left) * scaleX;
-    const mouseY = viewBox.y + (e.clientY - svgRect.top) * scaleY;
-
     if (aimingMode === 'DIRECTION') {
-      const dx = mouseX - ballPos.x;
-      const dy = mouseY - ballPos.y;
+      const dx = inputX - ballPos.x;
+      const dy = inputY - ballPos.y;
       const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
       let gameAngle = angleDeg + 90;
       if (gameAngle > 180) gameAngle -= 360;
@@ -627,15 +627,29 @@ export const GameField: React.FC<GameFieldProps> = ({
       const angleRad = (aimAngle - 90) * (Math.PI / 180);
       const dirX = Math.cos(angleRad);
       const dirY = Math.sin(angleRad);
-      const vecX = mouseX - ballPos.x;
-      const vecY = mouseY - ballPos.y;
+      const vecX = inputX - ballPos.x;
+      const vecY = inputY - ballPos.y;
       const crossProduct = dirX * vecY - dirY * vecX;
       setCurve(Math.max(-10, Math.min(10, crossProduct / 15)));
     }
   };
 
-  const handleActionButtonClick = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const { x, y } = getSVGCoords(e.clientX, e.clientY, e.currentTarget);
+    processAimingInput(x, y);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        const { x, y } = getSVGCoords(touch.clientX, touch.clientY, e.currentTarget);
+        processAimingInput(x, y);
+    }
+  };
+
+  const handleActionButtonClick = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation(); // Prevent field click
+    e.preventDefault();
     if (gameState === GamePhase.AIMING) {
       setGameState(GamePhase.POWER);
     } else if (gameState === GamePhase.POWER) {
@@ -754,7 +768,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   const goalRightX = (FIELD_WIDTH + GOAL_WIDTH) / 2;
 
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden bg-[#15803d]">
+    <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden bg-[#15803d] touch-none">
       
       {/* Aiming Mode Indicator - Moved up to clear new Help Control Position on Mobile */}
       <div className="absolute bottom-56 left-4 flex flex-col gap-1 pointer-events-none z-10">
@@ -769,9 +783,10 @@ export const GameField: React.FC<GameFieldProps> = ({
         height="100%" 
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`} 
         preserveAspectRatio="none"
-        className="cursor-crosshair w-full h-full shadow-2xl"
+        className="cursor-crosshair w-full h-full shadow-2xl touch-none"
         onClick={handleFieldClick}
         onMouseMove={handleMouseMove}
+        onTouchMove={handleTouchMove}
       >
         <defs>
           <pattern id="grassPattern" width="60" height="60" patternUnits="userSpaceOnUse">
@@ -861,6 +876,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       {(gameState === GamePhase.AIMING || gameState === GamePhase.POWER) && (
         <button
           onClick={handleActionButtonClick}
+          onTouchStart={handleActionButtonClick}
           className={`absolute bottom-8 right-8 w-24 h-24 rounded-full border-4 border-white shadow-xl flex flex-col items-center justify-center z-50 transition-transform active:scale-95 ${
             gameState === GamePhase.AIMING 
               ? 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' 
