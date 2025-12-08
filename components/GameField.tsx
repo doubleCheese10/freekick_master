@@ -92,6 +92,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   const goalScoredRef = useRef(false);
   const framesAfterGoalRef = useRef(0); 
   const ballStuckRef = useRef(false);
+  const kickSequenceStartedRef = useRef(false);
   
   // NET SEGMENTS REF
   const netSegments = useRef<NetSegment[]>([]);
@@ -100,8 +101,9 @@ export const GameField: React.FC<GameFieldProps> = ({
   const adOffsetRef = useRef(0);
   
   // Audio Ref
-  const whistleRef = useRef<HTMLAudioElement | null>(null);
-
+  const whistleAudioRef = useRef<HTMLAudioElement | null>(null);
+  const kickAudioRef = useRef<HTMLAudioElement | null>(null);
+  
   // Track power in a ref
   const powerRef = useRef(power);
   useEffect(() => { powerRef.current = power; }, [power]);
@@ -110,7 +112,30 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   // --- Initialize Audio ---
   useEffect(() => {
-    whistleRef.current = new Audio('/whistle.mp3');
+    whistleAudioRef.current = new Audio('https://res.letitduo.com/resources/whistle.mp3');
+    kickAudioRef.current = new Audio('https://res.letitduo.com/resources/kick.mp3');
+    
+    // Preload audio
+    whistleAudioRef.current.load();
+    kickAudioRef.current.load();
+  }, []);
+
+  const playWhistle = useCallback(() => {
+    if (whistleAudioRef.current) {
+        whistleAudioRef.current.currentTime = 0;
+        whistleAudioRef.current.play().catch(e => {
+            console.log("Audio playback waiting for interaction", e);
+        });
+    }
+  }, []);
+
+  const playKick = useCallback(() => {
+    if (kickAudioRef.current) {
+        kickAudioRef.current.currentTime = 0;
+        kickAudioRef.current.play().catch(e => {
+            console.log("Kick audio playback failed", e);
+        });
+    }
   }, []);
 
   // --- Responsive ViewBox Calculation ---
@@ -201,6 +226,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   useEffect(() => {
     if (gameState === GamePhase.POWER) {
       powerOscillationDir.current = 1;
+      kickSequenceStartedRef.current = false;
     }
     if (gameState === GamePhase.PLACEMENT) {
       setAimingMode('DIRECTION');
@@ -211,6 +237,9 @@ export const GameField: React.FC<GameFieldProps> = ({
       ballZ.current = 0;
       ballVz.current = 0;
       setVisualZ(0);
+      kickSequenceStartedRef.current = false;
+      // Play whistle at the start of the round (Placement Phase)
+      playWhistle();
     }
     if (gameState === GamePhase.AIMING) {
        goalScoredRef.current = false;
@@ -220,8 +249,9 @@ export const GameField: React.FC<GameFieldProps> = ({
        ballVz.current = 0;
        setVisualZ(0);
        initNet();
+       kickSequenceStartedRef.current = false;
     }
-  }, [gameState, initNet]);
+  }, [gameState, initNet, playWhistle]);
 
   // --- Physics: Kick Start ---
   const startKick = useCallback(() => {
@@ -243,16 +273,18 @@ export const GameField: React.FC<GameFieldProps> = ({
   }, [aimAngle]);
 
   const triggerShoot = useCallback(() => {
-    if (whistleRef.current) {
-        whistleRef.current.currentTime = 0;
-        whistleRef.current.volume = 0.5;
-        whistleRef.current.play().catch(() => {
-            // Ignore error if file not found or autoplay blocked
-        });
-    }
+    if (kickSequenceStartedRef.current) return;
+    
+    // 1. Lock power meter and input
+    kickSequenceStartedRef.current = true;
+    
+    // 2. Play Kick Sound
+    playKick();
+
+    // 3. Execute Shot
     startKick();
     setGameState(GamePhase.SHOOTING);
-  }, [startKick, setGameState]);
+  }, [startKick, setGameState, playKick]);
 
   // --- Physics Step with Delta Time ---
   const stepPhysics = (pos: Point, vel: Point, spin: number, isOnGround: boolean, dt: number): { pos: Point, vel: Point } => {
@@ -488,12 +520,15 @@ export const GameField: React.FC<GameFieldProps> = ({
     adOffsetRef.current += 1.5 * dt;
 
     if (gameState === GamePhase.POWER) {
-      setPower(prev => {
-        let next = prev + (2.5 * powerOscillationDir.current); 
-        if (next >= 100) { next = 100; powerOscillationDir.current = -1; } 
-        else if (next <= 0) { next = 0; powerOscillationDir.current = 1; }
-        return next;
-      });
+      // Only oscillate power if we haven't started the kick sequence
+      if (!kickSequenceStartedRef.current) {
+        setPower(prev => {
+          let next = prev + (2.5 * powerOscillationDir.current); 
+          if (next >= 100) { next = 100; powerOscillationDir.current = -1; } 
+          else if (next <= 0) { next = 0; powerOscillationDir.current = 1; }
+          return next;
+        });
+      }
       setTick(t => t + 1); 
       requestRef.current = requestAnimationFrame(animate);
     } else if (gameState === GamePhase.SHOOTING) {
