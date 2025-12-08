@@ -86,21 +86,21 @@ const App: React.FC = () => {
                 <>
                   <Trophy size={64} className="text-yellow-400 mb-4 animate-bounce" />
                   <h2 className="text-4xl font-black text-gray-800 mb-2">球进啦！</h2>
-                  <p className="text-gray-500 mb-6">这是一脚世界波！</p>
+                  <p className="text-gray-500 mb-6">比瞎蒙准一点！</p>
                 </>
               )}
               {result === 'SAVED' && (
                 <>
                   <Ban size={64} className="text-red-500 mb-4" />
                   <h2 className="text-4xl font-black text-gray-800 mb-2">被扑出了！</h2>
-                  <p className="text-gray-500 mb-6">守门员预判了你的射门。</p>
+                  <p className="text-gray-500 mb-6">守门员预判了你的预判。</p>
                 </>
               )}
               {result === 'MISS' && (
                 <>
                   <div className="text-6xl mb-4">💨</div>
                   <h2 className="text-4xl font-black text-gray-800 mb-2">偏出球门</h2>
-                  <p className="text-gray-500 mb-6">下次运气会更好。</p>
+                  <p className="text-gray-500 mb-6">下次踢地会更歪。</p>
                 </>
               )}
               

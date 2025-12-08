@@ -701,7 +701,7 @@ export const GameField: React.FC<GameFieldProps> = ({
     const boardX = viewBox.x - 50;
     const boardW = viewBox.w + 100;
     
-    const textStr = " • 任意球大师 • 门将噩梦 • 精准打击 • 极致拟真足球体验 ";
+    const textStr = " • 任意球大师傅 • 门将噩梦，吗？ • 精准打击 • 不好好踢，国足超过你 ";
     const textWidth = 1200; 
     const scroll = (adOffsetRef.current * 1.5) % textWidth;
 
