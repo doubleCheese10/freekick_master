@@ -4,7 +4,7 @@ import { PowerMeter } from './components/PowerMeter';
 import { ControlsHelp } from './components/ControlsHelp';
 import { GamePhase, Point, GameResult } from './types';
 import { FIELD_WIDTH, FIELD_HEIGHT } from './constants';
-import { Trophy, Ban, RefreshCcw } from 'lucide-react';
+import { Trophy, Ban, RefreshCcw, Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GamePhase>(GamePhase.PLACEMENT);
@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [score, setScore] = useState(0);
   const [result, setResult] = useState<GameResult>(null);
   const [attempts, setAttempts] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
 
   const handleResult = (gameResult: GameResult) => {
     setGameState(GamePhase.RESULT);
@@ -49,7 +50,17 @@ const App: React.FC = () => {
           <h1 className="text-2xl font-black text-white italic tracking-wider">
             任意球<span className="text-green-500">大师</span> <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">测试版</span>
           </h1>
-          <div className="flex gap-6 text-white font-mono">
+          <div className="flex gap-6 text-white font-mono items-center">
+            {/* Audio Toggle Button */}
+            <button 
+              onClick={() => setIsMuted(!isMuted)}
+              className="flex flex-col items-center justify-center h-full text-gray-400 hover:text-white transition-colors p-1"
+              title={isMuted ? "开启音效" : "静音"}
+            >
+              {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+            </button>
+            <div className="w-[1px] h-8 bg-gray-600"></div>
+
             <div className="flex flex-col items-center">
               <span className="text-xs text-gray-400">进球</span>
               <span className="text-xl font-bold">{score}</span>
@@ -74,6 +85,7 @@ const App: React.FC = () => {
           ballPos={ballPos}
           setBallPos={setBallPos}
           attempts={attempts}
+          isMuted={isMuted}
         />
 
         {gameState === GamePhase.POWER && <PowerMeter power={power} isActive={true} />}

@@ -35,6 +35,7 @@ interface GameFieldProps {
   ballPos: Point;
   setBallPos: (pos: Point) => void;
   attempts: number;
+  isMuted: boolean;
 }
 
 // Display constants
@@ -62,7 +63,8 @@ export const GameField: React.FC<GameFieldProps> = ({
   setPower, 
   ballPos, 
   setBallPos,
-  attempts
+  attempts,
+  isMuted
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number>(0);
@@ -121,22 +123,22 @@ export const GameField: React.FC<GameFieldProps> = ({
   }, []);
 
   const playWhistle = useCallback(() => {
-    if (whistleAudioRef.current) {
+    if (whistleAudioRef.current && !isMuted) {
         whistleAudioRef.current.currentTime = 0;
         whistleAudioRef.current.play().catch(e => {
             console.log("Audio playback waiting for interaction", e);
         });
     }
-  }, []);
+  }, [isMuted]);
 
   const playKick = useCallback(() => {
-    if (kickAudioRef.current) {
+    if (kickAudioRef.current && !isMuted) {
         kickAudioRef.current.currentTime = 0;
         kickAudioRef.current.play().catch(e => {
             console.log("Kick audio playback failed", e);
         });
     }
-  }, []);
+  }, [isMuted]);
 
   // --- Responsive ViewBox Calculation ---
   useEffect(() => {
