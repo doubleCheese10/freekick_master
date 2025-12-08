@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GamePhase, Point, GameResult, NetSegment } from '../types';
-import { 
-  FIELD_WIDTH, 
-  FIELD_HEIGHT, 
-  GOAL_WIDTH, 
-  PENALTY_BOX_HEIGHT, 
+import {
+  FIELD_WIDTH,
+  FIELD_HEIGHT,
+  GOAL_WIDTH,
+  PENALTY_BOX_HEIGHT,
   PENALTY_BOX_WIDTH,
   BALL_RADIUS,
   GOALIE_RADIUS,
@@ -40,7 +40,7 @@ interface GameFieldProps {
 // Display constants
 // Increased significantly to 320 to ensure the Ad Board (at -140) is visible 
 // below the HTML Header overlay on mobile devices.
-const TOP_PADDING = 320; 
+const TOP_PADDING = 320;
 const MIN_Y = -TOP_PADDING;
 const POST_RADIUS = 5;
 
@@ -55,45 +55,45 @@ const vecNorm = (v: Point) => {
   return l === 0 ? { x: 0, y: 0 } : { x: v.x / l, y: v.y / l };
 };
 
-export const GameField: React.FC<GameFieldProps> = ({ 
-  gameState, 
-  setGameState, 
-  onResult, 
-  power, 
-  setPower, 
-  ballPos, 
+export const GameField: React.FC<GameFieldProps> = ({
+  gameState,
+  setGameState,
+  onResult,
+  power,
+  setPower,
+  ballPos,
   setBallPos,
   attempts
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number>(0);
-  const [aimAngle, setAimAngle] = useState(0); 
-  const [curve, setCurve] = useState(0); 
+  const [aimAngle, setAimAngle] = useState(0);
+  const [curve, setCurve] = useState(0);
   const [aimingMode, setAimingMode] = useState<'DIRECTION' | 'CURVE'>('DIRECTION');
   const [goaliePos, setGoaliePos] = useState(FIELD_WIDTH / 2);
   const [predictedPath, setPredictedPath] = useState<Point[]>([]);
-  
+
   // ViewBox State
   const [viewBox, setViewBox] = useState({ x: 0, y: MIN_Y, w: FIELD_WIDTH, h: FIELD_HEIGHT + TOP_PADDING });
-  
+
   // Forces re-render of SVG for net animation even if ball stops
-  const [, setTick] = useState(0); 
-  
+  const [, setTick] = useState(0);
+
   // Physics state Refs
   const ballVelocity = useRef({ x: 0, y: 0 });
   const ballPositionRef = useRef(ballPos);
-  
+
   // Z-Axis Physics (Height)
   const ballZ = useRef(0);
   const ballVz = useRef(0);
   // Visual state for Z (to render ball scale/shadow)
   const [visualZ, setVisualZ] = useState(0);
 
-  const powerOscillationDir = useRef(1); 
+  const powerOscillationDir = useRef(1);
   const goalScoredRef = useRef(false);
-  const framesAfterGoalRef = useRef(0); 
+  const framesAfterGoalRef = useRef(0);
   const ballStuckRef = useRef(false);
-  
+
   // NET SEGMENTS REF
   const netSegments = useRef<NetSegment[]>([]);
 
@@ -116,7 +116,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       // We want to maintain a "Core" playable area around the goal
       const CORE_WIDTH = 600;
       // Core height includes play area + top padding (ad board + header space)
-      const CORE_HEIGHT = FIELD_HEIGHT + 100; 
+      const CORE_HEIGHT = FIELD_HEIGHT + 100;
       const coreAspect = CORE_WIDTH / CORE_HEIGHT;
 
       let vw, vh;
@@ -135,7 +135,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       // Anchor Y to the top (MIN_Y)
       const centerX = FIELD_WIDTH / 2;
       const vx = centerX - (vw / 2);
-      
+
       setViewBox({ x: vx, y: MIN_Y, w: vw, h: vh });
     };
 
@@ -157,7 +157,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       segments.push({
         A: p1,
         B: p2,
-        normal: { x: nx, y: ny }, 
+        normal: { x: nx, y: ny },
         offset: 0,
         velocity: 0
       });
@@ -166,24 +166,24 @@ export const GameField: React.FC<GameFieldProps> = ({
     // 1. Left Side Net (3 segments)
     const sideSegCount = 3;
     for (let i = 0; i < sideSegCount; i++) {
-        const y1 = (i / sideSegCount) * backY;
-        const y2 = ((i + 1) / sideSegCount) * backY;
-        addSeg({ x: goalLeft, y: y1 }, { x: goalLeft, y: y2 }, 1, 0); 
+      const y1 = (i / sideSegCount) * backY;
+      const y2 = ((i + 1) / sideSegCount) * backY;
+      addSeg({ x: goalLeft, y: y1 }, { x: goalLeft, y: y2 }, 1, 0);
     }
 
     // 2. Back Net (12 segments)
     const backSegCount = 12;
     for (let i = 0; i < backSegCount; i++) {
-        const x1 = goalLeft + (i / backSegCount) * GOAL_WIDTH;
-        const x2 = goalLeft + ((i + 1) / backSegCount) * GOAL_WIDTH;
-        addSeg({ x: x1, y: backY }, { x: x2, y: backY }, 0, 1); 
+      const x1 = goalLeft + (i / backSegCount) * GOAL_WIDTH;
+      const x2 = goalLeft + ((i + 1) / backSegCount) * GOAL_WIDTH;
+      addSeg({ x: x1, y: backY }, { x: x2, y: backY }, 0, 1);
     }
 
     // 3. Right Side Net (3 segments)
     for (let i = 0; i < sideSegCount; i++) {
-        const y1 = backY - (i / sideSegCount) * backY;
-        const y2 = backY - ((i + 1) / sideSegCount) * backY;
-        addSeg({ x: goalRight, y: y1 }, { x: goalRight, y: y2 }, -1, 0); 
+      const y1 = backY - (i / sideSegCount) * backY;
+      const y2 = backY - ((i + 1) / sideSegCount) * backY;
+      addSeg({ x: goalRight, y: y1 }, { x: goalRight, y: y2 }, -1, 0);
     }
 
     netSegments.current = segments;
@@ -205,13 +205,13 @@ export const GameField: React.FC<GameFieldProps> = ({
       setVisualZ(0);
     }
     if (gameState === GamePhase.AIMING) {
-       goalScoredRef.current = false;
-       framesAfterGoalRef.current = 0;
-       ballStuckRef.current = false;
-       ballZ.current = 0;
-       ballVz.current = 0;
-       setVisualZ(0);
-       initNet();
+      goalScoredRef.current = false;
+      framesAfterGoalRef.current = 0;
+      ballStuckRef.current = false;
+      ballZ.current = 0;
+      ballVz.current = 0;
+      setVisualZ(0);
+      initNet();
     }
   }, [gameState, initNet]);
 
@@ -219,16 +219,16 @@ export const GameField: React.FC<GameFieldProps> = ({
   const startKick = useCallback(() => {
     const angleRad = (aimAngle - 90) * (Math.PI / 180);
     const speed = (powerRef.current / 100) * MAX_POWER_SPEED;
-    
+
     ballVelocity.current = {
       x: Math.cos(angleRad) * speed,
       y: Math.sin(angleRad) * speed
     };
-    
+
     // Initial vertical velocity based on power (pop up)
-    ballVz.current = (powerRef.current / 100) * 8; 
+    ballVz.current = (powerRef.current / 100) * 8;
     ballZ.current = 0;
-    
+
     goalScoredRef.current = false;
     framesAfterGoalRef.current = 0;
     ballStuckRef.current = false;
@@ -237,7 +237,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   // --- Physics Step with Delta Time ---
   const stepPhysics = (pos: Point, vel: Point, spin: number, isOnGround: boolean, dt: number): { pos: Point, vel: Point } => {
     const speed = vecLen(vel);
-    
+
     // Magnus Force (Curve)
     // Effect reduced significantly when on ground
     let fx = 0, fy = 0;
@@ -246,24 +246,24 @@ export const GameField: React.FC<GameFieldProps> = ({
       const ny = vel.y / speed;
       // If on ground, spin friction eats the curve force
       const effectiveSpin = isOnGround ? spin * 0.2 : spin;
-      const forceMag = effectiveSpin * MAGNUS_STRENGTH * speed; 
-      
+      const forceMag = effectiveSpin * MAGNUS_STRENGTH * speed;
+
       // Force applied over time dt
-      fx = -ny * forceMag * dt; 
+      fx = -ny * forceMag * dt;
       fy = nx * forceMag * dt;
     }
 
     let vx = vel.x + fx;
     let vy = vel.y + fy;
-    
+
     // Apply friction based on state (Air vs Ground)
     // Friction is exponential decay: vel = vel * friction^dt
     const frictionBase = isOnGround ? FRICTION_GROUND : FRICTION_AIR;
     const friction = Math.pow(frictionBase, dt);
-    
+
     vx *= friction;
     vy *= friction;
-    
+
     if (isOnGround && speed < STOP_THRESHOLD) {
       vx = 0;
       vy = 0;
@@ -285,81 +285,81 @@ export const GameField: React.FC<GameFieldProps> = ({
     const midPoint = vecMul(vecAdd(currentPos, predictedPos), 0.5);
 
     netSegments.current.forEach((seg, index) => {
-        const disp = vecMul(seg.normal, -Math.abs(seg.offset)); 
-        const A = vecAdd(seg.A, disp);
-        const B = vecAdd(seg.B, disp);
+      const disp = vecMul(seg.normal, -Math.abs(seg.offset));
+      const A = vecAdd(seg.A, disp);
+      const B = vecAdd(seg.B, disp);
 
-        const AB = vecSub(B, A);
-        const AM = vecSub(midPoint, A);
-        const t = Math.max(0, Math.min(1, vecDot(AM, AB) / vecDot(AB, AB)));
-        const closest = vecAdd(A, vecMul(AB, t));
-        
-        const distVec = vecSub(midPoint, closest);
-        const dist = vecLen(distVec);
+      const AB = vecSub(B, A);
+      const AM = vecSub(midPoint, A);
+      const t = Math.max(0, Math.min(1, vecDot(AM, AB) / vecDot(AB, AB)));
+      const closest = vecAdd(A, vecMul(AB, t));
 
-        if (dist < BALL_RADIUS) {
-            if (!bestHit || dist < bestHit.dist) {
-                bestHit = {
-                    segIndex: index,
-                    dist: dist,
-                    normal: seg.normal,
-                    point: closest
-                };
-            }
+      const distVec = vecSub(midPoint, closest);
+      const dist = vecLen(distVec);
+
+      if (dist < BALL_RADIUS) {
+        if (!bestHit || dist < bestHit.dist) {
+          bestHit = {
+            segIndex: index,
+            dist: dist,
+            normal: seg.normal,
+            point: closest
+          };
         }
+      }
     });
 
     if (bestHit) {
-        const seg = netSegments.current[bestHit.segIndex];
-        const normal = seg.normal; 
+      const seg = netSegments.current[bestHit.segIndex];
+      const normal = seg.normal;
 
-        const impactSpeed = vecLen(newVel);
-        const dotNormal = vecDot(vecNorm(newVel), normal);
-        
-        // Easier to stick: Increased speed threshold from 2.0 to 8.0
-        if (impactSpeed < 8.0 && dotNormal > -0.9) {
-            ballStuckRef.current = true;
-            newVel = { x: 0, y: 0 };
-        } else {
-            const penetration = BALL_RADIUS - bestHit.dist;
-            // correction
-            newPos = vecAdd(bestHit.point, vecMul(normal, BALL_RADIUS + 0.1));
+      const impactSpeed = vecLen(newVel);
+      const dotNormal = vecDot(vecNorm(newVel), normal);
 
-            const vDotN = vecDot(newVel, normal);
-            let refX = newVel.x - 2 * vDotN * normal.x;
-            let refY = newVel.y - 2 * vDotN * normal.y;
-            
-            // SIGNIFICANTLY REDUCED RESTITUTION FOR "DEAD" FEEL
-            const restitution = 0.05;
-            newVel.x = refX * restitution;
-            newVel.y = refY * restitution;
+      // Easier to stick: Increased speed threshold from 2.0 to 8.0
+      if (impactSpeed < 8.0 && dotNormal > -0.9) {
+        ballStuckRef.current = true;
+        newVel = { x: 0, y: 0 };
+      } else {
+        const penetration = BALL_RADIUS - bestHit.dist;
+        // correction
+        newPos = vecAdd(bestHit.point, vecMul(normal, BALL_RADIUS + 0.1));
 
-            // Kill vertical velocity (height) on net hit to make it drop
-            ballVz.current *= 0.1;
+        const vDotN = vecDot(newVel, normal);
+        let refX = newVel.x - 2 * vDotN * normal.x;
+        let refY = newVel.y - 2 * vDotN * normal.y;
 
-            const tx = -normal.y;
-            const ty = normal.x;
-            const vTan = newVel.x * tx + newVel.y * ty;
-            
-            // INCREASED TANGENTIAL FRICTION
-            newVel.x = normal.x * (newVel.x * normal.x + newVel.y * normal.y) + tx * vTan * 0.05;
-            newVel.y = normal.y * (newVel.x * normal.x + newVel.y * normal.y) + ty * vTan * 0.05;
+        // SIGNIFICANTLY REDUCED RESTITUTION FOR "DEAD" FEEL
+        const restitution = 0.05;
+        newVel.x = refX * restitution;
+        newVel.y = refY * restitution;
 
-            // Impact is instantaneous force, doesn't need dt scaling
-            const impactForce = Math.abs(vDotN) * 2;
-            seg.velocity += impactForce; 
-        }
+        // Kill vertical velocity (height) on net hit to make it drop
+        ballVz.current *= 0.1;
+
+        const tx = -normal.y;
+        const ty = normal.x;
+        const vTan = newVel.x * tx + newVel.y * ty;
+
+        // INCREASED TANGENTIAL FRICTION
+        newVel.x = normal.x * (newVel.x * normal.x + newVel.y * normal.y) + tx * vTan * 0.05;
+        newVel.y = normal.y * (newVel.x * normal.x + newVel.y * normal.y) + ty * vTan * 0.05;
+
+        // Impact is instantaneous force, doesn't need dt scaling
+        const impactForce = Math.abs(vDotN) * 2;
+        seg.velocity += impactForce;
+      }
     }
 
     netSegments.current.forEach(seg => {
-        const k = 0.1;
-        const force = -k * seg.offset;
-        // Apply force over time dt
-        seg.velocity += force * dt;
-        // Decay over time dt
-        seg.velocity *= Math.pow(0.92, dt); 
-        seg.offset += seg.velocity * dt;
-        if (seg.offset < -2) seg.offset = -2; 
+      const k = 0.1;
+      const force = -k * seg.offset;
+      // Apply force over time dt
+      seg.velocity += force * dt;
+      // Decay over time dt
+      seg.velocity *= Math.pow(0.92, dt);
+      seg.offset += seg.velocity * dt;
+      if (seg.offset < -2) seg.offset = -2;
     });
 
     return { newPos, newVel };
@@ -369,16 +369,16 @@ export const GameField: React.FC<GameFieldProps> = ({
   const updatePredictedPath = useCallback(() => {
     if (gameState !== GamePhase.AIMING && gameState !== GamePhase.POWER) return;
     const angleRad = (aimAngle - 90) * (Math.PI / 180);
-    const simSpeed = MAX_POWER_SPEED * 0.85; 
+    const simSpeed = MAX_POWER_SPEED * 0.85;
     let simVel = { x: Math.cos(angleRad) * simSpeed, y: Math.sin(angleRad) * simSpeed };
     let simPos = { ...ballPos };
-    const simSpin = curve * 0.05; 
+    const simSpin = curve * 0.05;
     const points: Point[] = [simPos];
 
     // Simple 2D prediction (ignoring Z for visual line simplicity)
     // We use dt=1.0 here to predict "chunks" of path, keeping the line long and useful
     for (let i = 0; i < 100; i++) {
-      const result = stepPhysics(simPos, simVel, simSpin, false, 1.0); 
+      const result = stepPhysics(simPos, simVel, simSpin, false, 1.0);
       simPos = result.pos;
       simVel = result.vel;
       if (i % 3 === 0) points.push(simPos);
@@ -391,135 +391,135 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   // --- Post Collision Logic ---
   const handlePostCollisions = (pos: Point, vel: Point): { pos: Point, vel: Point } => {
-     let newPos = { ...pos };
-     let newVel = { ...vel };
-     const goalLeftX = (FIELD_WIDTH - GOAL_WIDTH) / 2;
-     const goalRightX = (FIELD_WIDTH + GOAL_WIDTH) / 2;
-     const posts = [{ x: goalLeftX, y: 0 }, { x: goalRightX, y: 0 }];
+    let newPos = { ...pos };
+    let newVel = { ...vel };
+    const goalLeftX = (FIELD_WIDTH - GOAL_WIDTH) / 2;
+    const goalRightX = (FIELD_WIDTH + GOAL_WIDTH) / 2;
+    const posts = [{ x: goalLeftX, y: 0 }, { x: goalRightX, y: 0 }];
 
-     for (const post of posts) {
-        const dx = newPos.x - post.x;
-        const dy = newPos.y - post.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const minDist = BALL_RADIUS + POST_RADIUS;
+    for (const post of posts) {
+      const dx = newPos.x - post.x;
+      const dy = newPos.y - post.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = BALL_RADIUS + POST_RADIUS;
 
-        if (dist < minDist) {
-           const nx = dx / dist;
-           const ny = dy / dist;
-           const dot = newVel.x * nx + newVel.y * ny;
-           
-           // REFLECTION
-           newVel.x = (newVel.x - 2 * dot * nx);
-           newVel.y = (newVel.y - 2 * dot * ny);
-           
-           // HEAVY DAMPING on impact
-           newVel.x *= BOUNCE_FACTOR_POST;
-           newVel.y *= BOUNCE_FACTOR_POST;
-           
-           // ADDITIONAL STOPPING POWER:
-           // If we hit the post, apply an immediate heavy friction factor
-           // This simulates the "dead ball" effect
-           newVel.x *= FRICTION_POST_IMPACT;
-           newVel.y *= FRICTION_POST_IMPACT;
+      if (dist < minDist) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const dot = newVel.x * nx + newVel.y * ny;
 
-           // Pop the ball up slightly if it hits hard
-           ballVz.current = Math.abs(dot) * 0.2; 
+        // REFLECTION
+        newVel.x = (newVel.x - 2 * dot * nx);
+        newVel.y = (newVel.y - 2 * dot * ny);
 
-           // Correct position
-           newPos.x = post.x + nx * minDist;
-           newPos.y = post.y + ny * minDist;
-        }
-     }
-     return { pos: newPos, vel: newVel };
+        // HEAVY DAMPING on impact
+        newVel.x *= BOUNCE_FACTOR_POST;
+        newVel.y *= BOUNCE_FACTOR_POST;
+
+        // ADDITIONAL STOPPING POWER:
+        // If we hit the post, apply an immediate heavy friction factor
+        // This simulates the "dead ball" effect
+        newVel.x *= FRICTION_POST_IMPACT;
+        newVel.y *= FRICTION_POST_IMPACT;
+
+        // Pop the ball up slightly if it hits hard
+        ballVz.current = Math.abs(dot) * 0.2;
+
+        // Correct position
+        newPos.x = post.x + nx * minDist;
+        newPos.y = post.y + ny * minDist;
+      }
+    }
+    return { pos: newPos, vel: newVel };
   };
 
   // --- Check Goal Logic ---
   const checkGoal = (x: number, y: number, currentSpeed: number): GameResult => {
     const goalLeft = (FIELD_WIDTH - GOAL_WIDTH) / 2;
     const goalRight = (FIELD_WIDTH + GOAL_WIDTH) / 2;
-    
+
     if (y <= 0 && y > -GOAL_DEPTH) {
       if (x > goalLeft + BALL_RADIUS && x < goalRight - BALL_RADIUS) {
-        const distToGoalie = Math.sqrt(Math.pow(x - goaliePos, 2) + Math.pow(y - 0, 2)); 
-        const reach = GOALIE_RADIUS * 3.5; 
+        const distToGoalie = Math.sqrt(Math.pow(x - goaliePos, 2) + Math.pow(y - 0, 2));
+        const reach = GOALIE_RADIUS * 3.5;
         if (distToGoalie < reach && !goalScoredRef.current) {
-            const curveFactor = Math.abs(curve);
-            const speedFactor = currentSpeed / MAX_POWER_SPEED; 
-            const saveProbability = 0.8 - (curveFactor * 0.04) - (speedFactor * 0.3);
-            if (Math.random() < saveProbability) return 'SAVED';
+          const curveFactor = Math.abs(curve);
+          const speedFactor = currentSpeed / MAX_POWER_SPEED;
+          const saveProbability = 0.8 - (curveFactor * 0.04) - (speedFactor * 0.3);
+          if (Math.random() < saveProbability) return 'SAVED';
         }
         return 'GOAL';
       }
     }
     // Expanded Miss Check area
     if (y < -GOAL_DEPTH - 50 || x < -500 || x > FIELD_WIDTH + 500 || y > FIELD_HEIGHT + 500) {
-       if (y < 0 && !goalScoredRef.current) return 'MISS';
+      if (y < 0 && !goalScoredRef.current) return 'MISS';
     }
     return null;
   };
 
   // --- Animation Loop ---
   const animate = useCallback((time: number) => {
-    
+
     // Determine Time Scale (Slow Motion only during shooting)
     const dt = (gameState === GamePhase.SHOOTING) ? TIME_SCALE : 1.0;
-    
+
     // Update Ad Board offset
     adOffsetRef.current += 1.5 * dt;
 
     if (gameState === GamePhase.POWER) {
       setPower(prev => {
-        let next = prev + (2.5 * powerOscillationDir.current); 
-        if (next >= 100) { next = 100; powerOscillationDir.current = -1; } 
+        let next = prev + (2.5 * powerOscillationDir.current);
+        if (next >= 100) { next = 100; powerOscillationDir.current = -1; }
         else if (next <= 0) { next = 0; powerOscillationDir.current = 1; }
         return next;
       });
-      setTick(t => t + 1); 
+      setTick(t => t + 1);
       requestRef.current = requestAnimationFrame(animate);
     } else if (gameState === GamePhase.SHOOTING) {
-      
+
       // Goalie AI
       if (!goalScoredRef.current) {
         setGoaliePos(prev => {
-           const targetX = ballPositionRef.current.x;
-           const diff = targetX - prev;
-           const maxMove = 2.5 * dt; // Scale goalie speed too
-           if (targetX > 0 && targetX < FIELD_WIDTH) return prev + Math.max(-maxMove, Math.min(maxMove, diff));
-           return prev;
+          const targetX = ballPositionRef.current.x;
+          const diff = targetX - prev;
+          const maxMove = 2.5 * dt; // Scale goalie speed too
+          if (targetX > 0 && targetX < FIELD_WIDTH) return prev + Math.max(-maxMove, Math.min(maxMove, diff));
+          return prev;
         });
       }
 
       if (ballStuckRef.current) {
-          setTick(t => t + 1);
-          updateNetPhysics(ballPositionRef.current, ballPositionRef.current, {x:0, y:0}, dt);
-          if (!goalScoredRef.current) goalScoredRef.current = true;
+        setTick(t => t + 1);
+        updateNetPhysics(ballPositionRef.current, ballPositionRef.current, { x: 0, y: 0 }, dt);
+        if (!goalScoredRef.current) goalScoredRef.current = true;
       } else {
         // --- 2.5D Height Physics ---
         if (ballZ.current > 0 || ballVz.current > 0) {
-           ballZ.current += ballVz.current * dt;
-           ballVz.current -= GRAVITY * dt;
-           if (ballZ.current <= 0) {
-              ballZ.current = 0;
-              // Bounce on ground logic
-              ballVz.current = -ballVz.current * BOUNCE_FACTOR_GROUND;
-              // If bounce is tiny, stop bouncing
-              if (Math.abs(ballVz.current) < 1.0) ballVz.current = 0;
-           }
+          ballZ.current += ballVz.current * dt;
+          ballVz.current -= GRAVITY * dt;
+          if (ballZ.current <= 0) {
+            ballZ.current = 0;
+            // Bounce on ground logic
+            ballVz.current = -ballVz.current * BOUNCE_FACTOR_GROUND;
+            // If bounce is tiny, stop bouncing
+            if (Math.abs(ballVz.current) < 1.0) ballVz.current = 0;
+          }
         }
         setVisualZ(ballZ.current);
         const isOnGround = ballZ.current <= 0;
 
         // Decrease curve (spin) if on ground
         if (isOnGround) {
-            // spin decay needs dt scaling too: new = old * decay^dt
-            setCurve(prev => prev * Math.pow(0.9, dt)); 
+          // spin decay needs dt scaling too: new = old * decay^dt
+          setCurve(prev => prev * Math.pow(0.9, dt));
         }
 
-        const spin = curve * 0.05; 
-        
+        const spin = curve * 0.05;
+
         // --- Step XY Physics ---
         let result = stepPhysics(ballPositionRef.current, ballVelocity.current, spin, isOnGround, dt);
-        
+
         const postRes = handlePostCollisions(result.pos, result.vel);
         result.pos = postRes.pos;
         result.vel = postRes.vel;
@@ -527,7 +527,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const netRes = updateNetPhysics(ballPositionRef.current, result.pos, result.vel, dt);
         result.pos = netRes.newPos;
         result.vel = netRes.newVel;
-        
+
         ballVelocity.current = result.vel;
         ballPositionRef.current = result.pos;
         setBallPos(result.pos);
@@ -536,32 +536,32 @@ export const GameField: React.FC<GameFieldProps> = ({
         const speed = vecLen(result.vel);
 
         if (!goalScoredRef.current) {
-            const gameResult = checkGoal(result.pos.x, result.pos.y, speed);
-            if (gameResult === 'GOAL') {
-                goalScoredRef.current = true;
-            } else if (gameResult) {
-                onResult(gameResult);
-            } else if (isOnGround && speed === 0) {
-                // Ball has stopped moving and didn't score (hit post and stopped, or stopped on field)
-                onResult('MISS');
-            }
+          const gameResult = checkGoal(result.pos.x, result.pos.y, speed);
+          if (gameResult === 'GOAL') {
+            goalScoredRef.current = true;
+          } else if (gameResult) {
+            onResult(gameResult);
+          } else if (isOnGround && speed === 0) {
+            // Ball has stopped moving and didn't score (hit post and stopped, or stopped on field)
+            onResult('MISS');
+          }
         }
       }
 
       if (goalScoredRef.current) {
-         framesAfterGoalRef.current += 1 * dt; // Count frames by time
-         const speed = vecLen(ballVelocity.current);
-         // Stop game quicker if ball stops
-         if ((speed < STOP_THRESHOLD || ballStuckRef.current) && framesAfterGoalRef.current > 60) {
-             onResult('GOAL');
-         } else if (framesAfterGoalRef.current > 200) {
-             onResult('GOAL');
-         }
+        framesAfterGoalRef.current += 1 * dt; // Count frames by time
+        const speed = vecLen(ballVelocity.current);
+        // Stop game quicker if ball stops
+        if ((speed < STOP_THRESHOLD || ballStuckRef.current) && framesAfterGoalRef.current > 60) {
+          onResult('GOAL');
+        } else if (framesAfterGoalRef.current > 200) {
+          onResult('GOAL');
+        }
       }
       requestRef.current = requestAnimationFrame(animate);
     } else {
       setGoaliePos(FIELD_WIDTH / 2);
-      setTick(t => t + 1); 
+      setTick(t => t + 1);
       requestRef.current = requestAnimationFrame(animate);
     }
   }, [gameState, onResult, setPower, setBallPos, goaliePos, curve]);
@@ -585,13 +585,13 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   // Coordinate conversion helper
   const getSVGCoords = (clientX: number, clientY: number, svgElement: SVGSVGElement) => {
-      const svgRect = svgElement.getBoundingClientRect();
-      const scaleX = viewBox.w / svgRect.width;
-      const scaleY = viewBox.h / svgRect.height;
-      return {
-          x: viewBox.x + (clientX - svgRect.left) * scaleX,
-          y: viewBox.y + (clientY - svgRect.top) * scaleY
-      };
+    const svgRect = svgElement.getBoundingClientRect();
+    const scaleX = viewBox.w / svgRect.width;
+    const scaleY = viewBox.h / svgRect.height;
+    return {
+      x: viewBox.x + (clientX - svgRect.left) * scaleX,
+      y: viewBox.y + (clientY - svgRect.top) * scaleY
+    };
   };
 
   const handleFieldClick = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -614,7 +614,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   // Unified logic for processing Aim/Curve updates
   const processAimingInput = (inputX: number, inputY: number) => {
     if (gameState !== GamePhase.AIMING) return;
-    
+
     if (aimingMode === 'DIRECTION') {
       const dx = inputX - ballPos.x;
       const dy = inputY - ballPos.y;
@@ -640,9 +640,9 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
     if (e.touches.length > 0) {
-        const touch = e.touches[0];
-        const { x, y } = getSVGCoords(touch.clientX, touch.clientY, e.currentTarget);
-        processAimingInput(x, y);
+      const touch = e.touches[0];
+      const { x, y } = getSVGCoords(touch.clientX, touch.clientY, e.currentTarget);
+      processAimingInput(x, y);
     }
   };
 
@@ -662,105 +662,105 @@ export const GameField: React.FC<GameFieldProps> = ({
     if ((gameState !== GamePhase.AIMING && gameState !== GamePhase.POWER) || predictedPath.length < 2) return null;
     return (
       <>
-        <polyline 
-          points={predictedPath.map(p => `${p.x},${p.y}`).join(' ')} 
-          fill="none" 
-          stroke={aimingMode === 'CURVE' ? "#fbbf24" : "rgba(255, 255, 255, 0.9)"} 
+        <polyline
+          points={predictedPath.map(p => `${p.x},${p.y}`).join(' ')}
+          fill="none"
+          stroke={aimingMode === 'CURVE' ? "#fbbf24" : "rgba(255, 255, 255, 0.9)"}
           strokeWidth="3"
           strokeDasharray="5,5"
           strokeLinecap="round"
           opacity="0.8"
         />
-        {predictedPath.length > 0 && <circle cx={predictedPath[predictedPath.length-1].x} cy={predictedPath[predictedPath.length-1].y} r="4" fill="white" opacity="0.6" />}
+        {predictedPath.length > 0 && <circle cx={predictedPath[predictedPath.length - 1].x} cy={predictedPath[predictedPath.length - 1].y} r="4" fill="white" opacity="0.6" />}
         <text x={ballPos.x + 20} y={ballPos.y} fill="white" fontSize="12" style={{ textShadow: '1px 1px 2px black' }}>
-           {aimingMode === 'DIRECTION' ? '设定方向' : `弧度: ${Math.round(curve * 10) / 10}`}
+          {aimingMode === 'DIRECTION' ? '设定方向' : `弧度: ${Math.round(curve * 10) / 10}`}
         </text>
       </>
     );
   };
 
   const renderNet = () => {
-      if (netSegments.current.length === 0) return null;
-      const elements: React.ReactElement[] = [];
-      netSegments.current.forEach((seg, i) => {
-          const disp = vecMul(seg.normal, -seg.offset); 
-          const A = vecAdd(seg.A, disp);
-          const B = vecAdd(seg.B, disp);
-          elements.push(
-              <line key={`net-${i}`} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-          );
-      });
-      return <g>{elements}</g>;
+    if (netSegments.current.length === 0) return null;
+    const elements: React.ReactElement[] = [];
+    netSegments.current.forEach((seg, i) => {
+      const disp = vecMul(seg.normal, -seg.offset);
+      const A = vecAdd(seg.A, disp);
+      const B = vecAdd(seg.B, disp);
+      elements.push(
+        <line key={`net-${i}`} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
+      );
+    });
+    return <g>{elements}</g>;
   };
 
   const renderAdBoard = () => {
     // Position fixed relative to goal (-140) to be visible but under the header
-    const yPos = -140; 
+    const yPos = -140;
     const height = 60;
     // Dynamic width to cover the full visible area
     const boardX = viewBox.x - 50;
     const boardW = viewBox.w + 100;
-    
+
     const textStr = " • 任意球大师傅 • 门将噩梦，吗？ • 精准打击 • 不好好踢，国足超过你 ";
-    const textWidth = 1200; 
+    const textWidth = 1200;
     const scroll = (adOffsetRef.current * 1.5) % textWidth;
 
     return (
       <g>
-         <rect x={boardX} y={yPos} width={boardW} height={height} fill="#111" stroke="#333" strokeWidth="4" />
-         <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={height - 10} fill="#000" />
-         <clipPath id="adBoardClip">
-            <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={height - 10} />
-         </clipPath>
-         <g clipPath="url(#adBoardClip)">
-            <text 
-              x={boardX - scroll} 
-              y={yPos + 40} 
-              fill="#ef4444" 
-              fontFamily="monospace" 
-              fontWeight="bold" 
-              fontSize="32"
-              style={{ letterSpacing: '4px' }}
-            >
-              {textStr.repeat(10)}
-            </text>
-         </g>
-         <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={height - 10} fill="url(#ledPattern)" opacity="0.3" pointerEvents="none" />
-         <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={(height - 10)/2} fill="white" opacity="0.05" pointerEvents="none" />
+        <rect x={boardX} y={yPos} width={boardW} height={height} fill="#111" stroke="#333" strokeWidth="4" />
+        <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={height - 10} fill="#000" />
+        <clipPath id="adBoardClip">
+          <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={height - 10} />
+        </clipPath>
+        <g clipPath="url(#adBoardClip)">
+          <text
+            x={boardX - scroll}
+            y={yPos + 40}
+            fill="#ef4444"
+            fontFamily="monospace"
+            fontWeight="bold"
+            fontSize="32"
+            style={{ letterSpacing: '4px' }}
+          >
+            {textStr.repeat(10)}
+          </text>
+        </g>
+        <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={height - 10} fill="url(#ledPattern)" opacity="0.3" pointerEvents="none" />
+        <rect x={boardX + 10} y={yPos + 5} width={boardW - 20} height={(height - 10) / 2} fill="white" opacity="0.05" pointerEvents="none" />
       </g>
     );
   };
 
   const renderExtendedField = () => {
-     // Center of playable field
-     const cx = FIELD_WIDTH / 2;
-     
-     // Calculate sideline positions
-     const leftLineX = cx - FULL_PITCH_WIDTH / 2;
-     const rightLineX = cx + FULL_PITCH_WIDTH / 2;
+    // Center of playable field
+    const cx = FIELD_WIDTH / 2;
 
-     return (
-       <g stroke="rgba(255,255,255,0.7)" strokeWidth="4" fill="none">
-          {/* Extended Sidelines (Left & Right) */}
-          <line x1={leftLineX} y1={0} x2={leftLineX} y2={FULL_PITCH_WIDTH} />
-          <line x1={rightLineX} y1={0} x2={rightLineX} y2={FULL_PITCH_WIDTH} />
+    // Calculate sideline positions
+    const leftLineX = cx - FULL_PITCH_WIDTH / 2;
+    const rightLineX = cx + FULL_PITCH_WIDTH / 2;
 
-          {/* Extended Baselines (Connect goal to corners) */}
-          <line x1={leftLineX} y1={0} x2={(FIELD_WIDTH - GOAL_WIDTH)/2} y2={0} />
-          <line x1={(FIELD_WIDTH + GOAL_WIDTH)/2} y1={0} x2={rightLineX} y2={0} />
+    return (
+      <g stroke="rgba(255,255,255,0.7)" strokeWidth="4" fill="none">
+        {/* Extended Sidelines (Left & Right) */}
+        <line x1={leftLineX} y1={0} x2={leftLineX} y2={FULL_PITCH_WIDTH} />
+        <line x1={rightLineX} y1={0} x2={rightLineX} y2={FULL_PITCH_WIDTH} />
 
-          {/* Corner Flags */}
-          <path d={`M ${leftLineX} ${CORNER_RADIUS} A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 0 ${leftLineX + CORNER_RADIUS} 0`} />
-          <path d={`M ${rightLineX} ${CORNER_RADIUS} A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${rightLineX - CORNER_RADIUS} 0`} />
+        {/* Extended Baselines (Connect goal to corners) */}
+        <line x1={leftLineX} y1={0} x2={(FIELD_WIDTH - GOAL_WIDTH) / 2} y2={0} />
+        <line x1={(FIELD_WIDTH + GOAL_WIDTH) / 2} y1={0} x2={rightLineX} y2={0} />
 
-          {/* Midfield Line */}
-          <line x1={leftLineX} y1={MIDFIELD_Y} x2={rightLineX} y2={MIDFIELD_Y} />
-          
-          {/* Center Circle */}
-          <circle cx={cx} cy={MIDFIELD_Y} r={100} />
-          <circle cx={cx} cy={MIDFIELD_Y} r={3} fill="white" />
-       </g>
-     )
+        {/* Corner Flags */}
+        <path d={`M ${leftLineX} ${CORNER_RADIUS} A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 0 ${leftLineX + CORNER_RADIUS} 0`} />
+        <path d={`M ${rightLineX} ${CORNER_RADIUS} A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${rightLineX - CORNER_RADIUS} 0`} />
+
+        {/* Midfield Line */}
+        <line x1={leftLineX} y1={MIDFIELD_Y} x2={rightLineX} y2={MIDFIELD_Y} />
+
+        {/* Center Circle */}
+        <circle cx={cx} cy={MIDFIELD_Y} r={100} />
+        <circle cx={cx} cy={MIDFIELD_Y} r={3} fill="white" />
+      </g>
+    )
   }
 
   const goalLeftX = (FIELD_WIDTH - GOAL_WIDTH) / 2;
@@ -768,7 +768,7 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   return (
     <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden bg-[#15803d] touch-none">
-      
+
       {/* Aiming Mode Indicator - Moved up to clear new Help Control Position on Mobile */}
       <div className="absolute bottom-56 left-4 flex flex-col gap-1 pointer-events-none z-10">
         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">当前模式</span>
@@ -777,10 +777,10 @@ export const GameField: React.FC<GameFieldProps> = ({
         </div>
       </div>
 
-      <svg 
-        width="100%" 
-        height="100%" 
-        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`} 
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
         preserveAspectRatio="none"
         className="cursor-crosshair w-full h-full shadow-2xl touch-none"
         onClick={handleFieldClick}
@@ -789,18 +789,18 @@ export const GameField: React.FC<GameFieldProps> = ({
       >
         <defs>
           <pattern id="grassPattern" width="60" height="60" patternUnits="userSpaceOnUse">
-             <rect width="60" height="60" fill="#15803d" />
-             <rect width="60" height="30" fill="#166534" fillOpacity="0.4" />
+            <rect width="60" height="60" fill="#15803d" />
+            <rect width="60" height="30" fill="#166534" fillOpacity="0.4" />
           </pattern>
           <pattern id="ledPattern" width="4" height="4" patternUnits="userSpaceOnUse">
-             <circle cx="2" cy="2" r="1" fill="black" />
+            <circle cx="2" cy="2" r="1" fill="black" />
           </pattern>
           <filter id="glow">
-             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-             <feMerge>
-                 <feMergeNode in="coloredBlur"/>
-                 <feMergeNode in="SourceGraphic"/>
-             </feMerge>
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
           </filter>
         </defs>
 
@@ -809,30 +809,30 @@ export const GameField: React.FC<GameFieldProps> = ({
 
         {/* Ad Board - Rendered behind goal but before field markings */}
         {renderAdBoard()}
-        
+
         {/* Full Pitch Markings (Sidelines, Midfield, Corners) */}
         {renderExtendedField()}
 
         {/* Penalty Area Lines */}
         <g stroke="rgba(255,255,255,0.7)" strokeWidth="4" fill="none">
-          <rect 
-            x={(FIELD_WIDTH - PENALTY_BOX_WIDTH) / 2} 
-            y="0" 
-            width={PENALTY_BOX_WIDTH} 
-            height={PENALTY_BOX_HEIGHT} 
+          <rect
+            x={(FIELD_WIDTH - PENALTY_BOX_WIDTH) / 2}
+            y="0"
+            width={PENALTY_BOX_WIDTH}
+            height={PENALTY_BOX_HEIGHT}
           />
-          <rect 
-            x={(FIELD_WIDTH - GOAL_AREA_WIDTH) / 2} 
-            y="0" 
-            width={GOAL_AREA_WIDTH} 
-            height={GOAL_AREA_HEIGHT} 
+          <rect
+            x={(FIELD_WIDTH - GOAL_AREA_WIDTH) / 2}
+            y="0"
+            width={GOAL_AREA_WIDTH}
+            height={GOAL_AREA_HEIGHT}
           />
-          <path 
-            d={`M ${(FIELD_WIDTH/2) - 40} ${PENALTY_BOX_HEIGHT} A 40 40 0 0 1 ${(FIELD_WIDTH/2) + 40} ${PENALTY_BOX_HEIGHT}`} 
+          <path
+            d={`M ${(FIELD_WIDTH / 2) - 40} ${PENALTY_BOX_HEIGHT} A 40 40 0 0 1 ${(FIELD_WIDTH / 2) + 40} ${PENALTY_BOX_HEIGHT}`}
           />
           <circle cx={FIELD_WIDTH / 2} cy={PENALTY_BOX_HEIGHT - 60} r="2" fill="white" />
         </g>
-        
+
         {/* Goal Structure */}
         <g transform={`translate(0, 0)`}>
           <rect x={goalLeftX} y={-GOAL_DEPTH} width={GOAL_WIDTH} height={GOAL_DEPTH} fill="rgba(0,0,0,0.3)" />
@@ -855,20 +855,35 @@ export const GameField: React.FC<GameFieldProps> = ({
         {/* Ball Rendering (Split into Shadow and Body) */}
         <g transform={`translate(${ballPos.x}, ${ballPos.y})`}>
           {/* Shadow - Stays on ground, gets smaller as ball goes up */}
-          <ellipse 
-             cx="0" cy="0" 
-             rx={BALL_RADIUS * (1 - Math.min(0.5, visualZ/100))} 
-             ry={BALL_RADIUS * 0.5 * (1 - Math.min(0.5, visualZ/100))} 
-             fill="rgba(0,0,0,0.5)" 
+          <ellipse
+            cx="0" cy="0"
+            rx={BALL_RADIUS * (1 - Math.min(0.5, visualZ / 100))}
+            ry={BALL_RADIUS * 0.5 * (1 - Math.min(0.5, visualZ / 100))}
+            fill="rgba(0,0,0,0.5)"
           />
-          
+
           {/* Ball Body - Moves up by visualZ */}
           <g transform={`translate(0, ${-visualZ})`}>
-            <circle r={BALL_RADIUS} fill="white" stroke="#ccc" strokeWidth="1" filter="url(#glow)" />
-            <path d="M -3 -3 L 3 3 M 3 -3 L -3 3" stroke="#333" strokeWidth="1.5" transform={`rotate(${ballPos.x + ballPos.y})`} />
+            {/* New detailed SVG Football - Scaled to match BALL_RADIUS */}
+            <g transform={`rotate(${ballPos.x + ballPos.y}) scale(${BALL_RADIUS / 15}) translate(-15, -15)`}>
+              {/* 1. Main Body */}
+              <circle cx="15" cy="15" r="14" fill="#ffffff" stroke="#000000" strokeWidth="2" />
+              {/* 2. Pentagon */}
+              <polygon points="15,7 22,12 19,20 11,20 8,12" fill="#000000" />
+              {/* 3. Seams */}
+              <g stroke="#000000" strokeWidth="2" strokeLinecap="round">
+                <line x1="15" y1="7" x2="15" y2="1" />
+                <line x1="22" y1="12" x2="28" y2="8" />
+                <line x1="19" y1="20" x2="24" y2="27" />
+                <line x1="11" y1="20" x2="6" y2="27" />
+                <line x1="8" y1="12" x2="2" y2="8" />
+              </g>
+            </g>
+            {/* Glow Filter Overlay - applied to a clone or the group if needed, keeping it simple for now */}
+            <circle r={BALL_RADIUS} fill="transparent" stroke="none" filter="url(#glow)" opacity="0.5" />
           </g>
         </g>
-        
+
       </svg>
 
       {/* Touch Action Button */}
@@ -876,11 +891,10 @@ export const GameField: React.FC<GameFieldProps> = ({
         <button
           onClick={handleActionButtonClick}
           onTouchStart={handleActionButtonClick}
-          className={`absolute bottom-8 right-8 w-24 h-24 rounded-full border-4 border-white shadow-xl flex flex-col items-center justify-center z-50 transition-transform active:scale-95 ${
-            gameState === GamePhase.AIMING 
-              ? 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' 
+          className={`absolute bottom-8 right-8 w-24 h-24 rounded-full border-4 border-white shadow-xl flex flex-col items-center justify-center z-50 transition-transform active:scale-95 ${gameState === GamePhase.AIMING
+              ? 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600'
               : 'bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600'
-          }`}
+            }`}
         >
           <span className="text-white font-black text-lg drop-shadow-md">
             {gameState === GamePhase.AIMING ? '蓄力' : '射门'}
