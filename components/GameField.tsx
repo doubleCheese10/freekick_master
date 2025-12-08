@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GamePhase, Point, GameResult, NetSegment } from '../types';
 import { 
@@ -674,7 +673,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         />
         {predictedPath.length > 0 && <circle cx={predictedPath[predictedPath.length-1].x} cy={predictedPath[predictedPath.length-1].y} r="4" fill="white" opacity="0.6" />}
         <text x={ballPos.x + 20} y={ballPos.y} fill="white" fontSize="12" style={{ textShadow: '1px 1px 2px black' }}>
-           {aimingMode === 'DIRECTION' ? 'Set Direction' : `Spin: ${Math.round(curve * 10) / 10}`}
+           {aimingMode === 'DIRECTION' ? '设定方向' : `弧度: ${Math.round(curve * 10) / 10}`}
         </text>
       </>
     );
@@ -702,8 +701,8 @@ export const GameField: React.FC<GameFieldProps> = ({
     const boardX = viewBox.x - 50;
     const boardW = viewBox.w + 100;
     
-    const textStr = " • FREE KICK MASTER • GOAL KEEPER NIGHTMARE • PRECISION STRIKE • ULTIMATE SOCCER SIMULATION ";
-    const textWidth = 1600; 
+    const textStr = " • 任意球大师 • 门将噩梦 • 精准打击 • 极致拟真足球体验 ";
+    const textWidth = 1200; 
     const scroll = (adOffsetRef.current * 1.5) % textWidth;
 
     return (
@@ -772,9 +771,9 @@ export const GameField: React.FC<GameFieldProps> = ({
       
       {/* Aiming Mode Indicator - Moved up to clear new Help Control Position on Mobile */}
       <div className="absolute bottom-56 left-4 flex flex-col gap-1 pointer-events-none z-10">
-        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aiming Mode</span>
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">当前模式</span>
         <div className={`text-xl font-black ${aimingMode === 'DIRECTION' ? 'text-blue-400' : 'text-yellow-400'}`}>
-          {aimingMode}
+          {aimingMode === 'DIRECTION' ? '设定方向' : '设定弧线'}
         </div>
       </div>
 
@@ -849,7 +848,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         {/* Goalkeeper */}
         <g transform={`translate(${goaliePos}, 5)`}>
           <circle r={GOALIE_RADIUS} fill="#ef4444" stroke="white" strokeWidth="2" />
-          <text y="4" fontSize="10" textAnchor="middle" fill="white" fontWeight="bold">GK</text>
+          <text y="4" fontSize="10" textAnchor="middle" fill="white" fontWeight="bold">守门员</text>
           <line x1={-12} y1="0" x2={12} y2="0" stroke="white" strokeWidth="3" strokeLinecap="round" />
         </g>
 
@@ -884,10 +883,10 @@ export const GameField: React.FC<GameFieldProps> = ({
           }`}
         >
           <span className="text-white font-black text-lg drop-shadow-md">
-            {gameState === GamePhase.AIMING ? 'POWER' : 'SHOOT'}
+            {gameState === GamePhase.AIMING ? '蓄力' : '射门'}
           </span>
           <span className="text-white/80 text-[10px] uppercase font-bold tracking-widest mt-1">
-            {gameState === GamePhase.AIMING ? '(SPACE)' : 'NOW!'}
+            {gameState === GamePhase.AIMING ? '发射' : '现在!'}
           </span>
         </button>
       )}

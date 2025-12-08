@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GameField } from './components/GameField';
 import { PowerMeter } from './components/PowerMeter';
@@ -48,15 +47,15 @@ const App: React.FC = () => {
       <div className="absolute top-4 left-0 right-0 z-20 flex justify-center pointer-events-none">
         <div className="w-full max-w-2xl flex justify-between items-center px-4 py-3 bg-gray-800/90 rounded-lg shadow-lg border border-gray-700 backdrop-blur-md pointer-events-auto">
           <h1 className="text-2xl font-black text-white italic tracking-wider">
-            FREE KICK <span className="text-green-500">MASTER</span> <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">BETA</span>
+            任意球<span className="text-green-500">大师</span> <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">测试版</span>
           </h1>
           <div className="flex gap-6 text-white font-mono">
             <div className="flex flex-col items-center">
-              <span className="text-xs text-gray-400">SCORE</span>
+              <span className="text-xs text-gray-400">进球</span>
               <span className="text-xl font-bold">{score}</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-xs text-gray-400">ATTEMPT</span>
+              <span className="text-xs text-gray-400">次数</span>
               <span className="text-xl font-bold">{attempts + 1}</span>
             </div>
           </div>
@@ -86,22 +85,22 @@ const App: React.FC = () => {
               {result === 'GOAL' && (
                 <>
                   <Trophy size={64} className="text-yellow-400 mb-4 animate-bounce" />
-                  <h2 className="text-4xl font-black text-gray-800 mb-2">GOAL!</h2>
-                  <p className="text-gray-500 mb-6">What a magnificent strike!</p>
+                  <h2 className="text-4xl font-black text-gray-800 mb-2">球进啦！</h2>
+                  <p className="text-gray-500 mb-6">这是一脚世界波！</p>
                 </>
               )}
               {result === 'SAVED' && (
                 <>
                   <Ban size={64} className="text-red-500 mb-4" />
-                  <h2 className="text-4xl font-black text-gray-800 mb-2">SAVED!</h2>
-                  <p className="text-gray-500 mb-6">The keeper read it perfectly.</p>
+                  <h2 className="text-4xl font-black text-gray-800 mb-2">被扑出了！</h2>
+                  <p className="text-gray-500 mb-6">守门员预判了你的射门。</p>
                 </>
               )}
               {result === 'MISS' && (
                 <>
                   <div className="text-6xl mb-4">💨</div>
-                  <h2 className="text-4xl font-black text-gray-800 mb-2">MISSED</h2>
-                  <p className="text-gray-500 mb-6">Better luck next time.</p>
+                  <h2 className="text-4xl font-black text-gray-800 mb-2">偏出球门</h2>
+                  <p className="text-gray-500 mb-6">下次运气会更好。</p>
                 </>
               )}
               
@@ -110,7 +109,7 @@ const App: React.FC = () => {
                 className="flex items-center gap-2 bg-gray-900 text-white px-8 py-3 rounded-full font-bold hover:bg-gray-700 transition-colors"
               >
                 <RefreshCcw size={20} />
-                Try Again
+                再试一次
               </button>
             </div>
           </div>
@@ -118,7 +117,7 @@ const App: React.FC = () => {
       </div>
       
       <div className="absolute bottom-1 right-2 text-gray-500 text-xs pointer-events-none opacity-50">
-        React + Physics
+        React + 物理引擎
       </div>
     </div>
   );

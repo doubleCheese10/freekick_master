@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GamePhase } from '../types';
 import { ArrowLeft, ArrowRight, MousePointer, Space, MoveHorizontal, MousePointerClick, RefreshCcw } from 'lucide-react';
@@ -20,7 +19,7 @@ export const ControlsHelp: React.FC<ControlsHelpProps> = ({ phase }) => {
       {phase === GamePhase.PLACEMENT && (
         <Step 
           icon={<MousePointer size={18} />} 
-          text="Click outside penalty box to place ball" 
+          text="点击禁区外任意位置放置足球" 
         />
       )}
       
@@ -28,27 +27,27 @@ export const ControlsHelp: React.FC<ControlsHelpProps> = ({ phase }) => {
         <>
           <Step 
             icon={<MoveHorizontal size={18} />} 
-            text="Move Mouse to Aim" 
+            text="拖动屏幕调整瞄准线" 
           />
           <Step 
             icon={<MousePointerClick size={18} />} 
-            text="Click to Toggle Spin Mode" 
+            text="点击屏幕切换 方向/弧线 模式" 
           />
            <Step 
             icon={<RefreshCcw size={18} />} 
-            text="Click again to Adjust Aim" 
+            text="再次点击可微调方向" 
           />
           <Step 
-            icon={<div className="font-bold text-xs border border-white px-1 rounded">SPACE</div>} 
-            text="Press SPACE to Start Power" 
+            icon={<div className="font-bold text-xs border border-white px-1 rounded">蓄力</div>} 
+            text="点击右下角按钮开始蓄力" 
           />
         </>
       )}
 
       {phase === GamePhase.POWER && (
         <Step 
-          icon={<div className="font-bold text-xs border border-white px-1 rounded">SPACE</div>} 
-          text="Press SPACE again to Shoot!" 
+          icon={<div className="font-bold text-xs border border-white px-1 rounded">射门</div>} 
+          text="再次点击按钮完成射门！" 
         />
       )}
     </div>
