@@ -38,6 +38,18 @@ interface GameFieldProps {
   isMuted: boolean;
 }
 
+// Particle System Types
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+  color: string;
+}
+
 // Display constants
 // Increased from 200 to 280 to move the field downwards and prevent header overlap on mobile.
 const TOP_PADDING = 280; 
@@ -67,6 +79,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   isMuted
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null); // Canvas for Particles
   const requestRef = useRef<number>(0);
   const [aimAngle, setAimAngle] = useState(0); 
   const [curve, setCurve] = useState(0); 
@@ -102,9 +115,14 @@ export const GameField: React.FC<GameFieldProps> = ({
   // Ad Board Ref
   const adOffsetRef = useRef(0);
   
+  // Particles Ref
+  const particlesRef = useRef<Particle[]>([]);
+  
   // Audio Ref
   const whistleAudioRef = useRef<HTMLAudioElement | null>(null);
   const kickAudioRef = useRef<HTMLAudioElement | null>(null);
+  const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const pingAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Track power in a ref
   const powerRef = useRef(power);
@@ -116,10 +134,14 @@ export const GameField: React.FC<GameFieldProps> = ({
   useEffect(() => {
     whistleAudioRef.current = new Audio('https://res.letitduo.com/resources/whistle.mp3');
     kickAudioRef.current = new Audio('https://res.letitduo.com/resources/kick.mp3');
+    celebrationAudioRef.current = new Audio('https://res.letitduo.com/resources/celebration.mp3');
+    pingAudioRef.current = new Audio('https://res.letitduo.com/resources/ping.mp3');
     
     // Preload audio
     whistleAudioRef.current.load();
     kickAudioRef.current.load();
+    celebrationAudioRef.current.load();
+    pingAudioRef.current.load();
   }, []);
 
   const playWhistle = useCallback(() => {
@@ -140,11 +162,36 @@ export const GameField: React.FC<GameFieldProps> = ({
     }
   }, [isMuted]);
 
+  const playCelebration = useCallback(() => {
+    if (celebrationAudioRef.current && !isMuted) {
+        celebrationAudioRef.current.currentTime = 0;
+        celebrationAudioRef.current.play().catch(e => {
+            console.log("Celebration audio playback failed", e);
+        });
+    }
+  }, [isMuted]);
+
+  const playPing = useCallback(() => {
+    if (pingAudioRef.current && !isMuted) {
+        pingAudioRef.current.currentTime = 0;
+        pingAudioRef.current.play().catch(e => {
+            console.log("Ping audio playback failed", e);
+        });
+    }
+  }, [isMuted]);
+
   // --- Responsive ViewBox Calculation ---
   useEffect(() => {
     const updateViewBox = () => {
       if (!containerRef.current) return;
       const { width, height } = containerRef.current.getBoundingClientRect();
+      
+      // Update Canvas Size to match container
+      if (canvasRef.current) {
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+      }
+
       const containerAspect = width / height;
 
       // We want to maintain a "Core" playable area around the goal
@@ -239,6 +286,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       ballZ.current = 0;
       ballVz.current = 0;
       setVisualZ(0);
+      particlesRef.current = []; // Clear particles
       kickSequenceStartedRef.current = false;
       // Play whistle at the start of the round (Placement Phase)
       playWhistle();
@@ -251,6 +299,7 @@ export const GameField: React.FC<GameFieldProps> = ({
        ballVz.current = 0;
        setVisualZ(0);
        initNet();
+       particlesRef.current = []; // Clear particles
        kickSequenceStartedRef.current = false;
     }
   }, [gameState, initNet, playWhistle]);
@@ -412,7 +461,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         seg.velocity += force * dt;
         // Decay over time dt
         seg.velocity *= Math.pow(0.92, dt); 
-        seg.offset += seg.velocity * dt;
+        seg.offset += seg.offset + seg.velocity * dt;
         if (seg.offset < -2) seg.offset = -2; 
     });
 
@@ -479,6 +528,9 @@ export const GameField: React.FC<GameFieldProps> = ({
            // Pop the ball up slightly if it hits hard
            ballVz.current = Math.abs(dot) * 0.2; 
 
+           // Play Ping Sound
+           playPing();
+
            // Correct position
            newPos.x = post.x + nx * minDist;
            newPos.y = post.y + ny * minDist;
@@ -510,6 +562,73 @@ export const GameField: React.FC<GameFieldProps> = ({
        if (y < 0 && !goalScoredRef.current) return 'MISS';
     }
     return null;
+  };
+
+  // --- Particle System Logic ---
+  const emitParticles = (pos: Point, vel: Point) => {
+    const speed = vecLen(vel);
+    // Only emit if moving fast enough
+    if (speed < 1.0) return;
+
+    // Emit 2 particles per frame
+    for (let i = 0; i < 2; i++) {
+        const angle = Math.atan2(vel.y, vel.x);
+        // Reverse direction + spread
+        const particleAngle = angle + Math.PI + (Math.random() - 0.5) * 0.5; 
+        const particleSpeed = Math.random() * speed * 0.3; // 30% of ball speed
+        
+        particlesRef.current.push({
+            x: pos.x,
+            y: pos.y,
+            vx: Math.cos(particleAngle) * particleSpeed,
+            vy: Math.sin(particleAngle) * particleSpeed,
+            life: 20 + Math.random() * 10,
+            maxLife: 30,
+            size: 4 + Math.random() * 4,
+            color: `rgba(255, ${Math.floor(100 + Math.random() * 155)}, 0, 1)` // Yellow-Orange
+        });
+    }
+  };
+
+  const updateParticles = (dt: number) => {
+      particlesRef.current.forEach(p => {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          p.size *= Math.pow(0.96, dt);
+      });
+      // Remove dead particles
+      particlesRef.current = particlesRef.current.filter(p => p.life > 0);
+  };
+
+  const drawParticles = (ctx: CanvasRenderingContext2D) => {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      
+      // Calculate coordinate scale from Game World to Canvas Pixel
+      const scaleX = ctx.canvas.width / viewBox.w;
+      const scaleY = ctx.canvas.height / viewBox.h;
+
+      ctx.globalCompositeOperation = "lighter"; // Glow effect
+
+      particlesRef.current.forEach(p => {
+          // Convert Game Coords to Screen Coords
+          const screenX = (p.x - viewBox.x) * scaleX;
+          const screenY = (p.y - viewBox.y) * scaleY;
+          const screenSize = p.size * scaleX; // Scale size roughly by X scale
+
+          const alpha = p.life / p.maxLife;
+          
+          const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, screenSize);
+          gradient.addColorStop(0, `rgba(255, 200, 50, ${alpha})`);
+          gradient.addColorStop(1, `rgba(255, 0, 0, 0)`);
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(screenX, screenY, screenSize, 0, Math.PI * 2);
+          ctx.fill();
+      });
+
+      ctx.globalCompositeOperation = "source-over"; // Reset
   };
 
   // --- Animation Loop ---
@@ -549,7 +668,10 @@ export const GameField: React.FC<GameFieldProps> = ({
       if (ballStuckRef.current) {
           setTick(t => t + 1);
           updateNetPhysics(ballPositionRef.current, ballPositionRef.current, {x:0, y:0}, dt);
-          if (!goalScoredRef.current) goalScoredRef.current = true;
+          if (!goalScoredRef.current) {
+             goalScoredRef.current = true;
+             playCelebration();
+          }
       } else {
         // --- 2.5D Height Physics ---
         if (ballZ.current > 0 || ballVz.current > 0) {
@@ -590,12 +712,18 @@ export const GameField: React.FC<GameFieldProps> = ({
         setBallPos(result.pos);
         setTick(t => t + 1);
 
+        // --- PARTICLES ---
+        if (!ballStuckRef.current && vecLen(ballVelocity.current) > 2.0) {
+            emitParticles(ballPositionRef.current, ballVelocity.current);
+        }
+
         const speed = vecLen(result.vel);
 
         if (!goalScoredRef.current) {
             const gameResult = checkGoal(result.pos.x, result.pos.y, speed);
             if (gameResult === 'GOAL') {
                 goalScoredRef.current = true;
+                playCelebration();
             } else if (gameResult) {
                 onResult(gameResult);
             } else if (isOnGround && speed === 0) {
@@ -603,6 +731,13 @@ export const GameField: React.FC<GameFieldProps> = ({
                 onResult('MISS');
             }
         }
+      }
+
+      // Update and Draw Particles
+      updateParticles(dt);
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) drawParticles(ctx);
       }
 
       if (goalScoredRef.current) {
@@ -619,9 +754,14 @@ export const GameField: React.FC<GameFieldProps> = ({
     } else {
       setGoaliePos(FIELD_WIDTH / 2);
       setTick(t => t + 1); 
+      // Clear canvas when not shooting
+      if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      }
       requestRef.current = requestAnimationFrame(animate);
     }
-  }, [gameState, onResult, setPower, setBallPos, goaliePos, curve]);
+  }, [gameState, onResult, setPower, setBallPos, goaliePos, curve, playCelebration, playPing]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
@@ -834,6 +974,11 @@ export const GameField: React.FC<GameFieldProps> = ({
           {aimingMode === 'DIRECTION' ? '设定方向' : '设定弧线'}
         </div>
       </div>
+
+      <canvas 
+        ref={canvasRef}
+        className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
+      />
 
       <svg 
         width="100%" 
