@@ -38,9 +38,8 @@ interface GameFieldProps {
 }
 
 // Display constants
-// Increased significantly to 320 to ensure the Ad Board (at -140) is visible 
-// below the HTML Header overlay on mobile devices.
-const TOP_PADDING = 320; 
+// Increased from 200 to 280 to move the field downwards and prevent header overlap on mobile.
+const TOP_PADDING = 280; 
 const MIN_Y = -TOP_PADDING;
 const POST_RADIUS = 5;
 
@@ -99,12 +98,20 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   // Ad Board Ref
   const adOffsetRef = useRef(0);
+  
+  // Audio Ref
+  const whistleRef = useRef<HTMLAudioElement | null>(null);
 
   // Track power in a ref
   const powerRef = useRef(power);
   useEffect(() => { powerRef.current = power; }, [power]);
 
   useEffect(() => { ballPositionRef.current = ballPos; }, [ballPos]);
+
+  // --- Initialize Audio ---
+  useEffect(() => {
+    whistleRef.current = new Audio('/whistle.mp3');
+  }, []);
 
   // --- Responsive ViewBox Calculation ---
   useEffect(() => {
@@ -116,7 +123,8 @@ export const GameField: React.FC<GameFieldProps> = ({
       // We want to maintain a "Core" playable area around the goal
       const CORE_WIDTH = 600;
       // Core height includes play area + top padding (ad board + header space)
-      const CORE_HEIGHT = FIELD_HEIGHT + 100; 
+      // Include TOP_PADDING in the logical core height to fit everything vertically
+      const CORE_HEIGHT = FIELD_HEIGHT + TOP_PADDING; 
       const coreAspect = CORE_WIDTH / CORE_HEIGHT;
 
       let vw, vh;
@@ -233,6 +241,18 @@ export const GameField: React.FC<GameFieldProps> = ({
     framesAfterGoalRef.current = 0;
     ballStuckRef.current = false;
   }, [aimAngle]);
+
+  const triggerShoot = useCallback(() => {
+    if (whistleRef.current) {
+        whistleRef.current.currentTime = 0;
+        whistleRef.current.volume = 0.5;
+        whistleRef.current.play().catch(() => {
+            // Ignore error if file not found or autoplay blocked
+        });
+    }
+    startKick();
+    setGameState(GamePhase.SHOOTING);
+  }, [startKick, setGameState]);
 
   // --- Physics Step with Delta Time ---
   const stepPhysics = (pos: Point, vel: Point, spin: number, isOnGround: boolean, dt: number): { pos: Point, vel: Point } => {
@@ -576,12 +596,14 @@ export const GameField: React.FC<GameFieldProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         if (gameState === GamePhase.AIMING) setGameState(GamePhase.POWER);
-        else if (gameState === GamePhase.POWER) { startKick(); setGameState(GamePhase.SHOOTING); }
+        else if (gameState === GamePhase.POWER) { 
+           triggerShoot();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, setGameState, startKick]);
+  }, [gameState, setGameState, triggerShoot]);
 
   // Coordinate conversion helper
   const getSVGCoords = (clientX: number, clientY: number, svgElement: SVGSVGElement) => {
@@ -652,8 +674,7 @@ export const GameField: React.FC<GameFieldProps> = ({
     if (gameState === GamePhase.AIMING) {
       setGameState(GamePhase.POWER);
     } else if (gameState === GamePhase.POWER) {
-      startKick();
-      setGameState(GamePhase.SHOOTING);
+      triggerShoot();
     }
   };
 
@@ -827,10 +848,12 @@ export const GameField: React.FC<GameFieldProps> = ({
             width={GOAL_AREA_WIDTH} 
             height={GOAL_AREA_HEIGHT} 
           />
+          {/* Penalty Arc: Increased radius from 40 to 70 and corrected sweep flag to 0 for outward curve */}
           <path 
-            d={`M ${(FIELD_WIDTH/2) - 40} ${PENALTY_BOX_HEIGHT} A 40 40 0 0 1 ${(FIELD_WIDTH/2) + 40} ${PENALTY_BOX_HEIGHT}`} 
+            d={`M ${(FIELD_WIDTH/2) - 70} ${PENALTY_BOX_HEIGHT} A 70 70 0 0 0 ${(FIELD_WIDTH/2) + 70} ${PENALTY_BOX_HEIGHT}`} 
           />
-          <circle cx={FIELD_WIDTH / 2} cy={PENALTY_BOX_HEIGHT - 60} r="2" fill="white" />
+          {/* Penalty Spot - adjusted position */}
+          <circle cx={FIELD_WIDTH / 2} cy={PENALTY_BOX_HEIGHT - 80} r="3" fill="white" />
         </g>
         
         {/* Goal Structure */}

@@ -1,14 +1,15 @@
 
+
 export const FIELD_WIDTH = 600; // The "Playable" width (Penalty box area focus)
 export const FIELD_HEIGHT = 550; // The "Playable" height for the game logic
 export const GOAL_WIDTH = 200;
 export const GOAL_DEPTH = 40;
 export const BALL_RADIUS = 8;
 export const GOALIE_RADIUS = 15;
-export const PENALTY_BOX_WIDTH = 400;
-export const PENALTY_BOX_HEIGHT = 200; // From top
-export const GOAL_AREA_WIDTH = 200;
-export const GOAL_AREA_HEIGHT = 80;
+export const PENALTY_BOX_WIDTH = 540;
+export const PENALTY_BOX_HEIGHT = 260; // From top
+export const GOAL_AREA_WIDTH = 320;
+export const GOAL_AREA_HEIGHT = 90;
 
 // Visual Full Pitch Constants (For extended rendering)
 export const FULL_PITCH_WIDTH = 1400; // Much wider than playable area
